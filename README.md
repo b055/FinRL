@@ -24,12 +24,12 @@
 
 
 
-**Financial Reinforcement Learning (FinRL)** ([website](https://finrl.readthedocs.io/en/latest/index.html)) is **the first open-source framework** to exploit the great potential of deep reinforcement learning. FinRL has evolved into an ecosystem as follows
+**Financial Reinforcement Learning (FinRL)** ([Document website](https://finrl.readthedocs.io/en/latest/index.html)) is **the first open-source framework** to demonstrate the great potential of financial reinforcement learning. FinRL has evolved into an **ecosystem**
 
-| Roadmap  | Stage | Users | Project | Desription |
+| Dev Roadmap  | Stage | Users | Project | Desription |
 |----|----|----|----|----|
 | 0.0 (Preparation) | entrance | practitioners | [FinRL-Meta](https://github.com/AI4Finance-Foundation/FinRL-Meta)| gym-style market environments |
-| 1.0 (Proof-of-Concept)| full-stack | developers | [this repo](https://github.com/AI4Finance-Foundation/FinRL) | pipeline |
+| 1.0 (Proof-of-Concept)| full-stack | developers | [this repo](https://github.com/AI4Finance-Foundation/FinRL) | automatic pipeline |
 | 2.0 (Professional) | profession | experts | [ElegantRL](https://github.com/AI4Finance-Foundation/ElegantRL) | algorithms |
 | 3.0 (Production) | service | hedge funds | [Podracer](https://github.com/AI4Finance-Foundation/FinRL_Podracer) | cloud-native deployment |
 
@@ -192,7 +192,7 @@ Technical indicators: 'macd', 'boll_ub', 'boll_lb', 'rsi_30', 'dx_30', 'close_30
 - The environment layer includes not only a collection of historical data APIs, but also live trading APIs. They are reconfigured into standard OpenAI gym-style environments. Moreover, it incorporates market frictions and allows users to customize the trading time granularity.
 
 
-## Tutorials 
+## Tutorials
 
 + [Towardsdatascience] [Deep Reinforcement Learning for Automated Stock Trading](https://towardsdatascience.com/deep-reinforcement-learning-for-automated-stock-trading-f1dad0126a02)
 
@@ -300,7 +300,7 @@ Thank you!
 
 ### Sponsorship
 
-Welcome gift money to support AI4Finance, a non-profit community. 
+Welcome gift money to support AI4Finance, a non-profit community.
 
 Network: USDT-TRC20
 
