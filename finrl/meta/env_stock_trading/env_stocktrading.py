@@ -104,19 +104,56 @@ class StockTradingEnv(gym.Env):
             if (
                 self.state[index + 2 * self.stock_dim + 1] != True
             ):  # check if the stock is able to sell, for simlicity we just add it in techical index
-                # if self.state[index + 1] > 0: # if we use price<0 to denote a stock is unable to trade in that day, the total asset calculation may be wrong for the price is unreasonable
+
+                # if we use price<0 to denote a stock is unable to trade in that day,
+                # if self.state[index + 1] > 0:
+                # the total asset calculation may be wrong for the price is unreasonable
                 # Sell only if the price is > 0 (no missing data in this particular date)
                 # perform sell action based on the sign of the action
-                if self.state[index + self.stock_dim + 1] > 0:
-                    # Sell only if current asset is > 0
-                    sell_num_shares = min(
-                        abs(action), self.state[index + self.stock_dim + 1]
+
+                # if self.state[index + self.stock_dim + 1] > 0:
+                # Sell only if current asset is > 0
+
+                # action will result in a short therefore need to check if shorting is possible
+                # compute current shorts
+                shorted_amount = 0
+                for i in range(self.stock_dim):
+                    if self.state[1 + self.stock_dim + i] < 0:
+                        shorted_amount += (
+                            self.state[1 + i] * self.state[1 + self.stock_dim + i]
+                        )
+
+                # compute number of possible shares to short after covering the current shorts
+                # print(
+                #     f"balance: {self.state[0]}, shorted_amount: {shorted_amount}, sum: {self.state[0] + shorted_amount}"
+                # )
+                # print(f"price: {self.state[index + 1]}")
+                available_shares = 0
+                available_balance = self.state[0] + shorted_amount
+                if available_balance > 0:
+                    available_shares = (available_balance) // (
+                        self.state[index + 1] * (1 + self.sell_cost_pct[index])
                     )
+                if self.state[1 + self.stock_dim + index] > 0:
+                    available_shares += self.state[1 + self.stock_dim + index]
+                print("#" * 200, available_balance)
+                print(f"action: {action}, available_shares: {available_shares}")
+                sell_num_shares = min(abs(action), available_shares)
+
+                if sell_num_shares > 0:
+                    if self.state[1 + index + self.stock_dim] - sell_num_shares < 0:
+                        #
+                        # TODO: need to do something about the interest charged for shorting
+                        # it's about 5.3% per year, how does this split to indivdual days? how many days to count
+                        # how does this affect the space play
+                        pass
+
                     sell_amount = (
                         self.state[index + 1]
                         * sell_num_shares
                         * (1 - self.sell_cost_pct[index])
                     )
+
                     # update balance
                     self.state[0] += sell_amount
 
@@ -127,11 +164,8 @@ class StockTradingEnv(gym.Env):
                         * self.sell_cost_pct[index]
                     )
                     self.trades += 1
-                else:
-                    sell_num_shares = 0
             else:
                 sell_num_shares = 0
-
             return sell_num_shares
 
         # perform sell action based on the sign of the action
@@ -175,9 +209,28 @@ class StockTradingEnv(gym.Env):
             ):  # check if the stock is able to buy
                 # if self.state[index + 1] >0:
                 # Buy only if the price is > 0 (no missing data in this particular date)
-                available_amount = self.state[0] // (
-                    self.state[index + 1] * (1 + self.buy_cost_pct[index])
-                )  # when buying stocks, we should consider the cost of trading when calculating available_amount, or we may be have cash<0
+
+                # if other shorts are being shorted, calculate the "buying power"
+                # count the shorts that can be covered
+                shorted_amount = 0
+                for i in range(self.stock_dim):
+                    if i == index:
+                        continue  # don't consider the current short
+                    if self.state[1 + self.stock_dim + i] < 0:
+                        shorted_amount += (
+                            self.state[1 + i] * self.state[1 + self.stock_dim + i]
+                        )
+
+                # cover the short and add the result to long stocks available
+                available_amount = 0
+                # available balancd already includes index if it's a short position
+                available_balance = self.state[0] + shorted_amount
+                if available_balance > 0:
+                    available_amount = available_balance // (
+                        self.state[index + 1] * (1 + self.buy_cost_pct[index])
+                    )
+
+                # when buying stocks, we should consider the cost of trading when calculating available_amount, or we may be have cash<0
                 # print('available_amount:{}'.format(available_amount))
 
                 # update balance
@@ -207,8 +260,32 @@ class StockTradingEnv(gym.Env):
             if self.turbulence < self.turbulence_threshold:
                 buy_num_shares = _do_buy()
             else:
-                buy_num_shares = 0
-                pass
+                if self.state[index + 1] > 0:
+                    # Buy only if the price is > 0 (no missing data in this particular date)
+                    # if turbulence goes over threshold, just cover all short positions
+                    if self.state[index + self.stock_dim + 1] < 0:
+                        # Buy only if current asset is < 0
+                        # this is initially a negative value
+                        buy_num_shares = abs(self.state[index + self.stock_dim + 1])
+                        buy_amount = (
+                            self.state[index + 1]
+                            * buy_num_shares
+                            * (1 - self.buy_cost_pct[index])
+                        )
+                        # update balance
+                        # when covering a short, add a negative value to reduce the final balance
+                        self.state[0] -= buy_amount
+                        self.state[index + self.stock_dim + 1] = 0
+                        self.cost += (
+                            self.state[index + 1]
+                            * buy_num_shares
+                            * self.buy_cost_pct[index]
+                        )
+                        self.trades += 1
+                    else:
+                        buy_num_shares = 0
+                else:
+                    buy_num_shares = 0
 
         return buy_num_shares
 
@@ -229,15 +306,9 @@ class StockTradingEnv(gym.Env):
             )
             df_total_value = pd.DataFrame(self.asset_memory)
             tot_reward = (
-                self.state[0]
-                + sum(
-                    np.array(self.state[1 : (self.stock_dim + 1)])
-                    * np.array(
-                        self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)]
-                    )
-                )
-                - self.asset_memory[0]
+                end_total_asset - self.asset_memory[0]
             )  # initial_amount is only cash part of our initial asset
+
             df_total_value.columns = ["account_value"]
             df_total_value["date"] = self.date_memory
             df_total_value["daily_return"] = df_total_value["account_value"].pct_change(
@@ -306,7 +377,12 @@ class StockTradingEnv(gym.Env):
             )  # convert into integer because we can't by fraction of shares
             if self.turbulence_threshold is not None:
                 if self.turbulence >= self.turbulence_threshold:
-                    actions = np.array([-self.hmax] * self.stock_dim)
+                    actions = np.array([0] * self.stock_dim)
+                    for i in range(1 + self.stock_dim, 1 + 2 * self.stock_dim):
+                        if self.state[i] > 0:
+                            actions[i - 1 - self.stock_dim] = -self.hmax
+                        elif self.state[i] < 0:
+                            actions[i - 1 - self.stock_dim] = self.hmax
             begin_total_asset = self.state[0] + sum(
                 np.array(self.state[1 : (self.stock_dim + 1)])
                 * np.array(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])
@@ -317,16 +393,25 @@ class StockTradingEnv(gym.Env):
             sell_index = argsort_actions[: np.where(actions < 0)[0].shape[0]]
             buy_index = argsort_actions[::-1][: np.where(actions > 0)[0].shape[0]]
 
+            # print(f"actions: {actions}")
+
             for index in sell_index:
                 # print(f"Num shares before: {self.state[index+self.stock_dim+1]}")
-                # print(f'take sell action before : {actions[index]}')
-                actions[index] = self._sell_stock(index, actions[index]) * (-1)
-                # print(f'take sell action after : {actions[index]}')
+                # print(f"take sell action before : {actions[index]}")
+                sell_result = self._sell_stock(index, actions[index]) * (-1)
+                # print(f"sell_result: {sell_result}")
+                actions[index] = sell_result
+                # print(f"take sell action after : {actions[index]}")
                 # print(f"Num shares after: {self.state[index+self.stock_dim+1]}")
 
             for index in buy_index:
-                # print('take buy action: {}'.format(actions[index]))
-                actions[index] = self._buy_stock(index, actions[index])
+                # print(f"Num shares before: {self.state[index+self.stock_dim+1]}")
+                # print("take buy action: {}".format(actions[index]))
+                buy_result = self._buy_stock(index, actions[index])
+                # print(f"buy_result: {buy_result}")
+                actions[index] = buy_result
+                # print(f"take buy action after : {actions[index]}")
+                # print(f"Num shares after: {self.state[index+self.stock_dim+1]}")
 
             self.actions_memory.append(actions)
 
@@ -339,7 +424,7 @@ class StockTradingEnv(gym.Env):
                 elif len(self.df.tic.unique()) > 1:
                     self.turbulence = self.data[self.risk_indicator_col].values[0]
             self.state = self._update_state()
-
+            # print(f"after update: {self.state}")
             end_total_asset = self.state[0] + sum(
                 np.array(self.state[1 : (self.stock_dim + 1)])
                 * np.array(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])
