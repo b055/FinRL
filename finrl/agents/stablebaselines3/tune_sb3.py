@@ -6,11 +6,10 @@ from pprint import pprint
 from typing import Tuple
 from typing import Union
 
-import hyperparams_opt as hpt
+from finrl.agents.stablebaselines3 import hyperparams_opt as hpt
 import joblib
 import optuna
 import pandas as pd
-from main import check_and_make_directories
 from stable_baselines3 import A2C
 from stable_baselines3 import DDPG
 from stable_baselines3 import PPO
@@ -18,6 +17,7 @@ from stable_baselines3 import SAC
 from stable_baselines3 import TD3
 
 from finrl import config
+from finrl.main import check_and_make_directories
 from finrl.agents.stablebaselines3.models import DRLAgent
 from finrl.plot import backtest_plot
 from finrl.plot import backtest_stats
@@ -133,6 +133,10 @@ class TuneSB3Optuna:
             return 0
 
     def objective(self, trial: optuna.Trial):
+        if hasattr(self.env_train, "using_her_replay_buffer"):
+            trial.set_user_attr(
+                "using_her_replay_buffer", self.env_train.using_her_replay_buffer
+            )
         hyperparameters = self.default_sample_hyperparameters(trial)
         policy_kwargs = hyperparameters["policy_kwargs"]
         del hyperparameters["policy_kwargs"]
@@ -154,8 +158,8 @@ class TuneSB3Optuna:
 
         return sharpe
 
-    def run_optuna(self):
-        sampler = optuna.samplers.TPESampler(seed=42)
+    def run_optuna(self, seed=None):
+        sampler = optuna.samplers.TPESampler(seed=seed)
         study = optuna.create_study(
             study_name=f"{self.model_name}_study",
             direction="maximize",

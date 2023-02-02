@@ -25,7 +25,7 @@ MODEL_KWARGS = {x: config.__dict__[f"{x.upper()}_PARAMS"] for x in MODELS.keys()
 
 NOISE = {
     "normal": NormalActionNoise,
-    "ornstein_uhlenbeck": OrnsteinUhlenbeckActionNoise,
+    "ornstein-uhlenbeck": OrnsteinUhlenbeckActionNoise,
 }
 
 
@@ -83,12 +83,16 @@ class DRLAgent:
         if model_kwargs is None:
             model_kwargs = MODEL_KWARGS[model_name]
 
-        if "action_noise" in model_kwargs:
-            n_actions = self.env.action_space.shape[-1]
-            model_kwargs["action_noise"] = NOISE[model_kwargs["action_noise"]](
-                mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
-            )
+        print("#" * 200)
         print(model_kwargs)
+        if "action_noise" in model_kwargs and model_kwargs["action_noise"] is not None:
+            n_actions = self.env.action_space.shape[-1]
+            model_kwargs["action_noise"] = NOISE[
+                model_kwargs["action_noise"]["noise_type"]
+            ](
+                mean=np.zeros(n_actions),
+                sigma=model_kwargs["action_noise"]["noise_std"] * np.ones(n_actions),
+            )
         return MODELS[model_name](
             policy=policy,
             env=self.env,
@@ -181,11 +185,20 @@ class DRLEnsembleAgent:
         else:
             temp_model_kwargs = model_kwargs.copy()
 
-        if "action_noise" in temp_model_kwargs:
+        print("-" * 200)
+        print(temp_model_kwargs)
+        if (
+            "action_noise" in temp_model_kwargs
+            and temp_model_kwargs["action_noise"] is not None
+        ):
             n_actions = env.action_space.shape[-1]
             temp_model_kwargs["action_noise"] = NOISE[
-                temp_model_kwargs["action_noise"]
-            ](mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
+                temp_model_kwargs["action_noise"]["noise_type"]
+            ](
+                mean=np.zeros(n_actions),
+                sigma=temp_model_kwargs["action_noise"]["noise_std"]
+                * np.ones(n_actions),
+            )
         print(temp_model_kwargs)
         return MODELS[model_name](
             policy=policy,
@@ -463,8 +476,16 @@ class DRLEnsembleAgent:
             # print("training: ",len(data_split(df, start=20090000, end=test.datadate.unique()[i-rebalance_window]) ))
             # print("==============Model Training===========")
             print("======A2C Training========")
+            A2C_policy_kwargs = None
+            if "policy_kwargs" in A2C_model_kwargs:
+                A2C_policy_kwargs = A2C_model_kwargs["policy_kwargs"]
+                del A2C_model_kwargs["policy_kwargs"]
             model_a2c = self.get_model(
-                "a2c", self.train_env, policy="MlpPolicy", model_kwargs=A2C_model_kwargs
+                "a2c",
+                self.train_env,
+                policy="MlpPolicy",
+                model_kwargs=A2C_model_kwargs,
+                policy_kwargs=A2C_policy_kwargs,
             )
             model_a2c = self.train_model(
                 model_a2c,
@@ -513,8 +534,16 @@ class DRLEnsembleAgent:
             print("A2C Sharpe Ratio: ", sharpe_a2c)
 
             print("======PPO Training========")
+            ppo_policy_kwargs = None
+            if "policy_kwargs" in PPO_model_kwargs:
+                ppo_policy_kwargs = PPO_model_kwargs["policy_kwargs"]
+                del PPO_model_kwargs["policy_kwargs"]
             model_ppo = self.get_model(
-                "ppo", self.train_env, policy="MlpPolicy", model_kwargs=PPO_model_kwargs
+                "ppo",
+                self.train_env,
+                policy="MlpPolicy",
+                model_kwargs=PPO_model_kwargs,
+                policy_kwargs=ppo_policy_kwargs,
             )
             model_ppo = self.train_model(
                 model_ppo,
@@ -562,11 +591,16 @@ class DRLEnsembleAgent:
             print("PPO Sharpe Ratio: ", sharpe_ppo)
 
             print("======DDPG Training========")
+            ddpg_policy_kwargs = None
+            if "policy_kwargs" in DDPG_model_kwargs:
+                ddpg_policy_kwargs = DDPG_model_kwargs["policy_kwargs"]
+                del DDPG_model_kwargs["policy_kwargs"]
             model_ddpg = self.get_model(
                 "ddpg",
                 self.train_env,
                 policy="MlpPolicy",
                 model_kwargs=DDPG_model_kwargs,
+                policy_kwargs=ddpg_policy_kwargs,
             )
             model_ddpg = self.train_model(
                 model_ddpg,
