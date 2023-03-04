@@ -129,15 +129,15 @@ class StockTradingEnv(gym.Env):
                 # )
                 # print(f"price: {self.state[index + 1]}")
                 available_shares = 0
-                available_balance = self.state[0] + shorted_amount
+                available_balance = self.state[0] + 2 * shorted_amount
                 if available_balance > 0:
                     available_shares = (available_balance) // (
                         self.state[index + 1] * (1 + self.sell_cost_pct[index])
                     )
                 if self.state[1 + self.stock_dim + index] > 0:
                     available_shares += self.state[1 + self.stock_dim + index]
-                print("#" * 200, available_balance)
-                print(f"action: {action}, available_shares: {available_shares}")
+
+                # print(f"action: {action}, available_shares: {available_shares}")
                 sell_num_shares = min(abs(action), available_shares)
 
                 if sell_num_shares > 0:
@@ -173,7 +173,7 @@ class StockTradingEnv(gym.Env):
             if self.turbulence >= self.turbulence_threshold:
                 if self.state[index + 1] > 0:
                     # Sell only if the price is > 0 (no missing data in this particular date)
-                    # if turbulence goes over threshold, just clear out all positions
+                    # if turbulence goes over threshold, just clear out all long positions
                     if self.state[index + self.stock_dim + 1] > 0:
                         # Sell only if current asset is > 0
                         sell_num_shares = self.state[index + self.stock_dim + 1]
@@ -224,7 +224,7 @@ class StockTradingEnv(gym.Env):
                 # cover the short and add the result to long stocks available
                 available_amount = 0
                 # available balancd already includes index if it's a short position
-                available_balance = self.state[0] + shorted_amount
+                available_balance = self.state[0] + 2 * shorted_amount
                 if available_balance > 0:
                     available_amount = available_balance // (
                         self.state[index + 1] * (1 + self.buy_cost_pct[index])
@@ -233,21 +233,24 @@ class StockTradingEnv(gym.Env):
                 # when buying stocks, we should consider the cost of trading when calculating available_amount, or we may be have cash<0
                 # print('available_amount:{}'.format(available_amount))
 
-                # update balance
                 buy_num_shares = min(available_amount, action)
-                buy_amount = (
-                    self.state[index + 1]
-                    * buy_num_shares
-                    * (1 + self.buy_cost_pct[index])
-                )
-                self.state[0] -= buy_amount
+                if buy_num_shares > 0:
+                    # update balance
+                    buy_amount = (
+                        self.state[index + 1]
+                        * buy_num_shares
+                        * (1 + self.buy_cost_pct[index])
+                    )
+                    self.state[0] -= buy_amount
 
-                self.state[index + self.stock_dim + 1] += buy_num_shares
+                    self.state[index + self.stock_dim + 1] += buy_num_shares
 
-                self.cost += (
-                    self.state[index + 1] * buy_num_shares * self.buy_cost_pct[index]
-                )
-                self.trades += 1
+                    self.cost += (
+                        self.state[index + 1]
+                        * buy_num_shares
+                        * self.buy_cost_pct[index]
+                    )
+                    self.trades += 1
             else:
                 buy_num_shares = 0
 
@@ -270,7 +273,7 @@ class StockTradingEnv(gym.Env):
                         buy_amount = (
                             self.state[index + 1]
                             * buy_num_shares
-                            * (1 - self.buy_cost_pct[index])
+                            * (1 + self.buy_cost_pct[index])
                         )
                         # update balance
                         # when covering a short, add a negative value to reduce the final balance
@@ -327,6 +330,11 @@ class StockTradingEnv(gym.Env):
                 print(f"day: {self.day}, episode: {self.episode}")
                 print(f"begin_total_asset: {self.asset_memory[0]:0.2f}")
                 print(f"end_total_asset: {end_total_asset:0.2f}")
+                print(f"prices: {self.state[1 : (self.stock_dim + 1)]}")
+                print(
+                    f"quantities: {self.state[1 + self.stock_dim : (self.stock_dim * 2 + 1)]}"
+                )
+                print(f"balance: {self.state[0]}")
                 print(f"total_reward: {tot_reward:0.2f}")
                 print(f"total_cost: {self.cost:0.2f}")
                 print(f"total_trades: {self.trades}")
@@ -374,7 +382,7 @@ class StockTradingEnv(gym.Env):
             actions = actions * self.hmax  # actions initially is scaled between 0 to 1
             actions = actions.astype(
                 int
-            )  # convert into integer because we can't by fraction of shares
+            )  # convert into integer because we can't buy fraction of shares
             if self.turbulence_threshold is not None:
                 if self.turbulence >= self.turbulence_threshold:
                     actions = np.array([0] * self.stock_dim)
