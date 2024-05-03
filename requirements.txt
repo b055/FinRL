@@ -15,7 +15,8 @@ pandas>=1.1.5
 
 #hooks
 pre-commit
-pyfolio
+git+https://github.com/b055/pyfolio.git@fix-bactest
+
 
 # testing requirements
 pytest

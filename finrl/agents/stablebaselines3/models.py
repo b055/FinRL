@@ -86,6 +86,8 @@ class DRLAgent:
         seed=None,
         tensorboard_log=None,
     ):
+        if "policy_kwargs" in model_kwargs and not policy_kwargs:
+            policy_kwargs = model_kwargs["policy_kwargs"]
         if model_name not in MODELS:
             raise ValueError(
                 f"Model '{model_name}' not found in MODELS."
