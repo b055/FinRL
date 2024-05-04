@@ -12,10 +12,10 @@ matplotlib
 # data handling
 numpy>=1.17.3
 pandas>=1.1.5
+git+https://github.com/b055/pyfolio.git@fix-backtest
 
 #hooks
 pre-commit
-git+https://github.com/b055/pyfolio.git@fix-bactest
 
 
 # testing requirements
