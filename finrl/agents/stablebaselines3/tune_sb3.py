@@ -109,9 +109,13 @@ class TuneSB3Optuna:
         if self.model_name == "a2c":
             return hpt.sample_a2c_params(trial)
         elif self.model_name == "ddpg":
-            return hpt.sample_ddpg_params(trial)
+            return hpt.sample_ddpg_params(
+                trial, n_actions=self.agent.env["action_space"]
+            )
         elif self.model_name == "td3":
-            return hpt.sample_td3_params(trial)
+            return hpt.sample_td3_params(
+                trial, n_actions=self.agent.env["action_space"]
+            )
         elif self.model_name == "sac":
             return hpt.sample_sac_params(trial)
         elif self.model_name == "ppo":

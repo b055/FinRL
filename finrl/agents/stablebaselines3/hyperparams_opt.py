@@ -325,7 +325,7 @@ def sample_sac_params(trial: optuna.Trial) -> dict[str, Any]:
     return hyperparams
 
 
-def sample_td3_params(trial: optuna.Trial) -> dict[str, Any]:
+def sample_td3_params(trial: optuna.Trial, n_actions: int) -> dict[str, Any]:
     """
     Sampler for TD3 hyperparams.
 
@@ -380,11 +380,11 @@ def sample_td3_params(trial: optuna.Trial) -> dict[str, Any]:
 
     if noise_type == "normal":
         hyperparams["action_noise"] = NormalActionNoise(
-            mean=np.zeros(trial.n_actions), sigma=noise_std * np.ones(trial.n_actions)
+            mean=np.zeros(n_actions), sigma=noise_std * np.ones(n_actions)
         )
     elif noise_type == "ornstein-uhlenbeck":
         hyperparams["action_noise"] = OrnsteinUhlenbeckActionNoise(
-            mean=np.zeros(trial.n_actions), sigma=noise_std * np.ones(trial.n_actions)
+            mean=np.zeros(n_actions), sigma=noise_std * np.ones(n_actions)
         )
 
     if trial.using_her_replay_buffer:
@@ -393,7 +393,7 @@ def sample_td3_params(trial: optuna.Trial) -> dict[str, Any]:
     return hyperparams
 
 
-def sample_ddpg_params(trial: optuna.Trial) -> dict[str, Any]:
+def sample_ddpg_params(trial: optuna.Trial, n_actions: int) -> dict[str, Any]:
     """
     Sampler for DDPG hyperparams.
 
@@ -442,11 +442,11 @@ def sample_ddpg_params(trial: optuna.Trial) -> dict[str, Any]:
 
     if noise_type == "normal":
         hyperparams["action_noise"] = NormalActionNoise(
-            mean=np.zeros(trial.n_actions), sigma=noise_std * np.ones(trial.n_actions)
+            mean=np.zeros(n_actions), sigma=noise_std * np.ones(n_actions)
         )
     elif noise_type == "ornstein-uhlenbeck":
         hyperparams["action_noise"] = OrnsteinUhlenbeckActionNoise(
-            mean=np.zeros(trial.n_actions), sigma=noise_std * np.ones(trial.n_actions)
+            mean=np.zeros(n_actions), sigma=noise_std * np.ones(n_actions)
         )
 
     if trial.using_her_replay_buffer:
