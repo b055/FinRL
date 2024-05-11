@@ -319,8 +319,8 @@ def sample_sac_params(trial: optuna.Trial) -> dict[str, Any]:
         "policy_kwargs": dict(log_std_init=log_std_init, net_arch=net_arch),
     }
 
-    if trial.using_her_replay_buffer:
-        hyperparams = sample_her_params(trial, hyperparams)
+    # if trial.using_her_replay_buffer:
+    #     hyperparams = sample_her_params(trial, hyperparams)
 
     return hyperparams
 
@@ -387,8 +387,8 @@ def sample_td3_params(trial: optuna.Trial, n_actions: int) -> dict[str, Any]:
             mean=np.zeros(n_actions), sigma=noise_std * np.ones(n_actions)
         )
 
-    if trial.using_her_replay_buffer:
-        hyperparams = sample_her_params(trial, hyperparams)
+    # if trial.using_her_replay_buffer:
+    #     hyperparams = sample_her_params(trial, hyperparams)
 
     return hyperparams
 
@@ -449,8 +449,8 @@ def sample_ddpg_params(trial: optuna.Trial, n_actions: int) -> dict[str, Any]:
             mean=np.zeros(n_actions), sigma=noise_std * np.ones(n_actions)
         )
 
-    if trial.using_her_replay_buffer:
-        hyperparams = sample_her_params(trial, hyperparams)
+    # if trial.using_her_replay_buffer:
+    #     hyperparams = sample_her_params(trial, hyperparams)
 
     return hyperparams
 
@@ -503,8 +503,8 @@ def sample_dqn_params(trial: optuna.Trial) -> dict[str, Any]:
         "policy_kwargs": dict(net_arch=net_arch),
     }
 
-    if trial.using_her_replay_buffer:
-        hyperparams = sample_her_params(trial, hyperparams)
+    # if trial.using_her_replay_buffer:
+    #     hyperparams = sample_her_params(trial, hyperparams)
 
     return hyperparams
 

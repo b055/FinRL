@@ -96,11 +96,11 @@ class DRLAgent:
         if model_kwargs is None:
             model_kwargs = MODEL_KWARGS[model_name]
 
-        if "action_noise" in model_kwargs:
-            n_actions = self.env.action_space.shape[-1]
-            model_kwargs["action_noise"] = NOISE[model_kwargs["action_noise"]](
-                mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
-            )
+        # if "action_noise" in model_kwargs:
+        #     n_actions = self.env.action_space.shape[-1]
+        #     model_kwargs["action_noise"] = NOISE[model_kwargs["action_noise"]](
+        #         mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
+        #     )
         print(model_kwargs)
         return MODELS[model_name](
             policy=policy,
@@ -209,11 +209,11 @@ class DRLEnsembleAgent:
         else:
             temp_model_kwargs = model_kwargs.copy()
 
-        if "action_noise" in temp_model_kwargs:
-            n_actions = env.action_space.shape[-1]
-            temp_model_kwargs["action_noise"] = NOISE[
-                temp_model_kwargs["action_noise"]
-            ](mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
+        # if "action_noise" in temp_model_kwargs:
+        #     n_actions = env.action_space.shape[-1]
+        #     temp_model_kwargs["action_noise"] = NOISE[
+        #         temp_model_kwargs["action_noise"]
+        #     ](mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
         print(temp_model_kwargs)
         return MODELS[model_name](
             policy=policy,
